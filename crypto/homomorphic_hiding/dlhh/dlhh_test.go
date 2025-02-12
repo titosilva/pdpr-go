@@ -37,7 +37,7 @@ func Test__Combine__ShouldCombineHiddenDataCorrectly__WhenTwoHiddenDataArePassed
 	// Act
 	hidden1 := dlh.Hide(data1)
 	hidden2 := dlh.Hide(data2)
-	combined := dlh.Combine(hidden1, hidden2)
+	combined := dlh.CombineHidden(hidden1, hidden2)
 
 	// Assert
 	if combined == nil {
