@@ -1,13 +1,10 @@
 package dlhh_test
 
 import (
-	"crypto/rand"
-	"encoding/binary"
 	"testing"
 
 	"github.com/titosilva/pdpr-go/crypto/homomorphic_hiding/dlhh"
 	"github.com/titosilva/pdpr-go/math/dl"
-	"github.com/titosilva/pdpr-go/math/nmod"
 )
 
 func Test__Hide__ShouldHideDataCorrectly__WhenDataIsPassed(t *testing.T) {
@@ -29,10 +26,8 @@ func Test__Combine__ShouldCombineHiddenDataCorrectly__WhenTwoHiddenDataArePassed
 	// Arrange
 	dlg := dl.NewOakley2Group()
 	dlh := dlhh.New(dlg)
-	n1 := randUint()
-	data1 := nmod.NewFromUint(n1, dlg.Mod).Bytes()
-	n2 := randUint()
-	data2 := nmod.NewFromUint(n2, dlg.Mod).Bytes()
+	data1 := random(32)
+	data2 := random(32)
 
 	// Act
 	hidden1 := dlh.Hide(data1)
@@ -44,14 +39,8 @@ func Test__Combine__ShouldCombineHiddenDataCorrectly__WhenTwoHiddenDataArePassed
 		t.Errorf("Expected a non-nil value")
 	}
 
-	sum := n1 + n2
-	if !dlh.Verify(nmod.NewFromUint(sum, dlg.Mod).Bytes(), combined) {
+	sum := dlh.CombinePlain(data1, data2)
+	if !dlh.Verify(sum, combined) {
 		t.Errorf("Expected the combined data to be valid")
 	}
-}
-
-func randUint() uint64 {
-	buf := make([]byte, 8)
-	rand.Read(buf)
-	return binary.BigEndian.Uint64(buf)
 }

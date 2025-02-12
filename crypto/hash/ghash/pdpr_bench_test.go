@@ -23,7 +23,7 @@ func generateRandomBytes(size int) ([]byte, error) {
 	return bytes, nil
 }
 
-func hashThenEncrypt(data []byte, key []byte, modulusBitsize uint64, block_size_bits int) ([]byte, []*uintp.UintP, []byte) {
+func encrypt(data []byte, key []byte, modulusBitsize uint64, block_size_bits int) ([]byte, []*uintp.UintP, []byte) {
 	crypt := gcrypt.New(modulusBitsize)
 
 	dataHash := ghash.NewWithParams(500, uint(modulusBitsize), block_size_bits/8, nil)
@@ -45,7 +45,7 @@ func hashThenEncrypt(data []byte, key []byte, modulusBitsize uint64, block_size_
 	return encrypted, dataNonceState, dataHash.GetDigest()
 }
 
-func hashEncrypted(encrypted []byte, encryptedNonceState []*uintp.UintP, modulusBitsize uint64, block_size_bits int) []*uintp.UintP {
+func generateProof(encrypted []byte, encryptedNonceState []*uintp.UintP, modulusBitsize uint64, block_size_bits int) []*uintp.UintP {
 	encryptedHash := ghash.NewWithParams(500, uint(modulusBitsize), block_size_bits/8, nil)
 	encryptedHash.SetNonceState(encryptedNonceState)
 	encryptedHash.AddBytes(encrypted)
@@ -53,7 +53,7 @@ func hashEncrypted(encrypted []byte, encryptedNonceState []*uintp.UintP, modulus
 	return encryptedHash.GetState()
 }
 
-func verifyHash(encryptedHashState []*uintp.UintP, encrypted []byte, key []byte, modulusBitsize uint64, block_size_bits int) {
+func verifyProof(encryptedHashState []*uintp.UintP, encrypted []byte, key []byte, modulusBitsize uint64, block_size_bits int) {
 	crypt := gcrypt.New(modulusBitsize)
 	encodedKey := crypt.ExpandKeyToBytes(key, len(encrypted))
 
@@ -127,40 +127,40 @@ func Benchmark__FullPdpr__256bit__128m__128b(b *testing.B) {
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms/pdpr")
 }
 
-func Benchmark__HashThenEncrypt__256bit__128m__128b(b *testing.B) {
+func Benchmark__Encrypt__256bit__128m__128b(b *testing.B) {
 	data, _ := generateRandomBytes(32)
 	key, _ := generateRandomBytes(32)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hashThenEncrypt(data, key, 128, 128)
+		encrypt(data, key, 128, 128)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__HashEncrypted__256bit__128m__128b(b *testing.B) {
+func Benchmark__GenerateProof__256bit__128m__128b(b *testing.B) {
 	data, _ := generateRandomBytes(32)
 	key, _ := generateRandomBytes(32)
-	encrypted, encryptedNonceState, _ := hashThenEncrypt(data, key, 128, 128)
+	encrypted, encryptedNonceState, _ := encrypt(data, key, 128, 128)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hashEncrypted(encrypted, encryptedNonceState, 128, 128)
+		generateProof(encrypted, encryptedNonceState, 128, 128)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__VerifyHash__256bit__128m__128b(b *testing.B) {
+func Benchmark__VerifyProof__256bit__128m__128b(b *testing.B) {
 	data, _ := generateRandomBytes(32)
 	key, _ := generateRandomBytes(32)
-	encrypted, encryptedNonceState, _ := hashThenEncrypt(data, key, 128, 128)
-	encryptedHashState := hashEncrypted(encrypted, encryptedNonceState, 128, 128)
+	encrypted, encryptedNonceState, _ := encrypt(data, key, 128, 128)
+	encryptedHashState := generateProof(encrypted, encryptedNonceState, 128, 128)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		verifyHash(encryptedHashState, encrypted, key, 128, 128)
+		verifyProof(encryptedHashState, encrypted, key, 128, 128)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
@@ -169,7 +169,7 @@ func Benchmark__VerifyHash__256bit__128m__128b(b *testing.B) {
 func Benchmark__Decrypt__256bit__128m__128b(b *testing.B) {
 	data, _ := generateRandomBytes(32)
 	key, _ := generateRandomBytes(32)
-	encrypted, _, _ := hashThenEncrypt(data, key, 128, 128)
+	encrypted, _, _ := encrypt(data, key, 128, 128)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -179,40 +179,40 @@ func Benchmark__Decrypt__256bit__128m__128b(b *testing.B) {
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__HashThenEncrypt__128bit__128m__128b(b *testing.B) {
+func Benchmark__Encrypt__128bit__128m__128b(b *testing.B) {
 	data, _ := generateRandomBytes(16)
 	key, _ := generateRandomBytes(16)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hashThenEncrypt(data, key, 128, 128)
+		encrypt(data, key, 128, 128)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__HashEncrypted__128bit__128m__128b(b *testing.B) {
+func Benchmark__GenerateProof__128bit__128m__128b(b *testing.B) {
 	data, _ := generateRandomBytes(16)
 	key, _ := generateRandomBytes(16)
-	encrypted, encryptedNonceState, _ := hashThenEncrypt(data, key, 128, 128)
+	encrypted, encryptedNonceState, _ := encrypt(data, key, 128, 128)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hashEncrypted(encrypted, encryptedNonceState, 128, 128)
+		generateProof(encrypted, encryptedNonceState, 128, 128)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__VerifyHash__128bit__128m__128b(b *testing.B) {
+func Benchmark__VerifyProof__128bit__128m__128b(b *testing.B) {
 	data, _ := generateRandomBytes(16)
 	key, _ := generateRandomBytes(16)
-	encrypted, encryptedNonceState, _ := hashThenEncrypt(data, key, 128, 128)
-	encryptedHashState := hashEncrypted(encrypted, encryptedNonceState, 128, 128)
+	encrypted, encryptedNonceState, _ := encrypt(data, key, 128, 128)
+	encryptedHashState := generateProof(encrypted, encryptedNonceState, 128, 128)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		verifyHash(encryptedHashState, encrypted, key, 128, 128)
+		verifyProof(encryptedHashState, encrypted, key, 128, 128)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
@@ -221,7 +221,7 @@ func Benchmark__VerifyHash__128bit__128m__128b(b *testing.B) {
 func Benchmark__Decrypt__128bit__128m__128b(b *testing.B) {
 	data, _ := generateRandomBytes(16)
 	key, _ := generateRandomBytes(16)
-	encrypted, _, _ := hashThenEncrypt(data, key, 128, 128)
+	encrypted, _, _ := encrypt(data, key, 128, 128)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -231,40 +231,40 @@ func Benchmark__Decrypt__128bit__128m__128b(b *testing.B) {
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__HashThenEncrypt__256bit__128m__256b(b *testing.B) {
+func Benchmark__Encrypt__256bit__128m__256b(b *testing.B) {
 	data, _ := generateRandomBytes(32)
 	key, _ := generateRandomBytes(32)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hashThenEncrypt(data, key, 128, 256)
+		encrypt(data, key, 128, 256)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__HashEncrypted__256bit__128m__256b(b *testing.B) {
+func Benchmark__GenerateProof__256bit__128m__256b(b *testing.B) {
 	data, _ := generateRandomBytes(32)
 	key, _ := generateRandomBytes(32)
-	encrypted, encryptedNonceState, _ := hashThenEncrypt(data, key, 128, 256)
+	encrypted, encryptedNonceState, _ := encrypt(data, key, 128, 256)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hashEncrypted(encrypted, encryptedNonceState, 128, 256)
+		generateProof(encrypted, encryptedNonceState, 128, 256)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__VerifyHash__256bit__128m__256b(b *testing.B) {
+func Benchmark__VerifyProof__256bit__128m__256b(b *testing.B) {
 	data, _ := generateRandomBytes(32)
 	key, _ := generateRandomBytes(32)
-	encrypted, encryptedNonceState, _ := hashThenEncrypt(data, key, 128, 256)
-	encryptedHashState := hashEncrypted(encrypted, encryptedNonceState, 128, 256)
+	encrypted, encryptedNonceState, _ := encrypt(data, key, 128, 256)
+	encryptedHashState := generateProof(encrypted, encryptedNonceState, 128, 256)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		verifyHash(encryptedHashState, encrypted, key, 128, 256)
+		verifyProof(encryptedHashState, encrypted, key, 128, 256)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
@@ -273,7 +273,7 @@ func Benchmark__VerifyHash__256bit__128m__256b(b *testing.B) {
 func Benchmark__Decrypt__256bit__128m__256b(b *testing.B) {
 	data, _ := generateRandomBytes(32)
 	key, _ := generateRandomBytes(32)
-	encrypted, _, _ := hashThenEncrypt(data, key, 128, 256)
+	encrypted, _, _ := encrypt(data, key, 128, 256)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -283,40 +283,40 @@ func Benchmark__Decrypt__256bit__128m__256b(b *testing.B) {
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__HashThenEncrypt__128bit__128m__256b(b *testing.B) {
+func Benchmark__Encrypt__128bit__128m__256b(b *testing.B) {
 	data, _ := generateRandomBytes(16)
 	key, _ := generateRandomBytes(16)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hashThenEncrypt(data, key, 128, 256)
+		encrypt(data, key, 128, 256)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__HashEncrypted__128bit__128m__256b(b *testing.B) {
+func Benchmark__GenerateProof__128bit__128m__256b(b *testing.B) {
 	data, _ := generateRandomBytes(16)
 	key, _ := generateRandomBytes(16)
-	encrypted, encryptedNonceState, _ := hashThenEncrypt(data, key, 128, 256)
+	encrypted, encryptedNonceState, _ := encrypt(data, key, 128, 256)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		hashEncrypted(encrypted, encryptedNonceState, 128, 256)
+		generateProof(encrypted, encryptedNonceState, 128, 256)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
 }
 
-func Benchmark__VerifyHash__128bit__128m__256b(b *testing.B) {
+func Benchmark__VerifyProof__128bit__128m__256b(b *testing.B) {
 	data, _ := generateRandomBytes(16)
 	key, _ := generateRandomBytes(16)
-	encrypted, encryptedNonceState, _ := hashThenEncrypt(data, key, 128, 256)
-	encryptedHashState := hashEncrypted(encrypted, encryptedNonceState, 128, 256)
+	encrypted, encryptedNonceState, _ := encrypt(data, key, 128, 256)
+	encryptedHashState := generateProof(encrypted, encryptedNonceState, 128, 256)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		verifyHash(encryptedHashState, encrypted, key, 128, 256)
+		verifyProof(encryptedHashState, encrypted, key, 128, 256)
 	}
 
 	b.ReportMetric(float64(b.Elapsed().Milliseconds())/float64(b.N), "ms")
@@ -325,7 +325,7 @@ func Benchmark__VerifyHash__128bit__128m__256b(b *testing.B) {
 func Benchmark__Decrypt__128bit__128m__256b(b *testing.B) {
 	data, _ := generateRandomBytes(16)
 	key, _ := generateRandomBytes(16)
-	encrypted, _, _ := hashThenEncrypt(data, key, 128, 256)
+	encrypted, _, _ := encrypt(data, key, 128, 256)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
